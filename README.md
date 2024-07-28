@@ -1,7 +1,7 @@
 # PROJECT-3-K
 # setup steps: Need to run with root user
 1. sudo -i
-2. sudo yum install net-tools && sudo  yum install unzip  
+2. yum install net-tools && yum install unzip  
 4. git clone https://github.com/farooq-001/PROJECT-3-K.git
 5. cd ROJECT-3-K.git && chmod +x *
 6. ./setup.sh
