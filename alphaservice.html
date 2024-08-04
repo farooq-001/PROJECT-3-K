@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Monitor</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            color: #333;
+        }
+        .background-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+        .content {
+            position: relative;
+            z-index: 1;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.8); /* Slightly transparent background */
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .active {
+            color: green;
+        }
+        .inactive, .failed {
+            color: red;
+        }
+        .activating, .deactivating {
+            color: yellow;
+        }
+        .reloading {
+            color: blue;
+        }
+        .maintenance {
+            color: magenta;
+        }
+        .unknown {
+            color: black;
+        }
+        .start-btn { background-color: #4CAF50; } /* Green */
+        .stop-btn { background-color: #f44336; }  /* Red */
+        .restart-btn { background-color: #ffa500; } /* Orange */
+        button {
+            margin: 2px;
+            padding: 5px 10px;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+        .start-btn:hover { background-color: #45a049; }
+        .stop-btn:hover { background-color: #e53935; }
+        .restart-btn:hover { background-color: #ff8c00; }
+        .section-title {
+            font-size: 20px;
+            margin: 10px 0;
+            color: #333;
+        }
+        .inactive {
+            background-color: #fdd;
+        }
+    </style>
+</head>
+<body>
+    <video class="background-video" autoplay muted loop>
+        <source src="{{ url_for('static', filename='live-2.mp4') }}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    <div class="content">
+        <h1>Service Monitor</h1>
+        
+        <div>
+            <div class="section-title">Active Services</div>
+            <table id="active-services">
+                <thead>
+                    <tr>
+                        <th>Service Name</th>
+                        <th>Status</th>
+                        <th>Main PID</th>
+                        <th>Active Since</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Active services will be dynamically inserted here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div>
+            <div class="section-title">Inactive Services</div>
+            <table id="inactive-services">
+                <thead>
+                    <tr>
+                        <th>Service Name</th>
+                        <th>Status</th>
+                        <th>Main PID</th>
+                        <th>Active Since</th>
+                        <th>Last Active Since</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Inactive services will be dynamically inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function fetchStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    const activeServicesTbody = document.getElementById('active-services').querySelector('tbody');
+                    const inactiveServicesTbody = document.getElementById('inactive-services').querySelector('tbody');
+                    activeServicesTbody.innerHTML = '';
+                    inactiveServicesTbody.innerHTML = '';
+
+                    for (const [service, details] of Object.entries(data)) {
+                        const statusClass = details.status.includes('active') ? 'active' :
+                                            details.status.includes('inactive') || details.status.includes('failed') ? 'inactive' :
+                                            details.status.includes('activating') || details.status.includes('deactivating') ? 'activating' :
+                                            details.status.includes('reloading') ? 'reloading' :
+                                            details.status.includes('maintenance') ? 'maintenance' : 'unknown';
+                        
+                        const buttons = `
+                            <button class="start-btn" onclick="manageService('start', '${service}')" ${details.status.includes('active') ? 'disabled' : ''}>Start</button>
+                            <button class="stop-btn" onclick="manageService('stop', '${service}')" ${details.status.includes('inactive') || details.status.includes('failed') ? 'disabled' : ''}>Stop</button>
+                            <button class="restart-btn" onclick="manageService('restart', '${service}')">Restart</button>
+                        `;
+                        
+                        const row = `
+                            <tr class="${statusClass}">
+                                <td>${service}</td>
+                                <td>${details.status}</td>
+                                <td>${details.main_pid}</td>
+                                <td>${details.active_since}</td>
+                                <td>${details.status.includes('inactive') ? details.last_active_since : ''}</td>
+                                <td>${buttons}</td>
+                            </tr>`;
+                        
+                        if (details.status.includes('active')) {
+                            activeServicesTbody.innerHTML += row;
+                        } else {
+                            inactiveServicesTbody.innerHTML += row;
+                        }
+                    }
+                })
+                .catch(error => console.error('Error fetching status:', error));
+        }
+
+        function manageService(action, service) {
+            fetch('/manage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ action, service }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    fetchStatus();  // Refresh status after action
+                } else {
+                    console.error('Error managing service:', data.message);
+                }
+            })
+            .catch(error => console.error('Error managing service:', error));
+        }
+
+        setInterval(fetchStatus, 1000);  // Refresh every 1 second
+        fetchStatus();  // Initial fetch
+    </script>
+</body>
+</html>
