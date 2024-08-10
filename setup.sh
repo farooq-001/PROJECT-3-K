@@ -41,6 +41,7 @@ packages=(
     "Flask-RESTful"
     "psutil"
     "humanize"
+    "requests"
 )
 
 for package in "${packages[@]}"; do
@@ -50,6 +51,7 @@ done
 # Deactivate the virtual environment after installation
 python3 -m venv myenv
 source myenv/bin/activate
+pip install requests
 python -m pip install --upgrade pip
 pip install Flask Flask-Login Flask-WTF Flask-Bootstrap Flask-SQLAlchemy Flask-Migrate Flask-Admin Flask-Caching Flask-Mail Flask-RESTful psutil humanize
 
@@ -58,6 +60,11 @@ pip install Flask Flask-Login Flask-WTF Flask-Bootstrap Flask-SQLAlchemy Flask-M
 unzip -q pycache.zip
 unzip -q static.zip
 unzip -q templates.zip
+
+sleep 2
+mv alpha-service-2.html  templates/
+mv live-2.mp4  static/
+
 rm -f pycache.zip static.zip templates.zip
 
 # Execute the run script (assuming it's present and correctly configured)
