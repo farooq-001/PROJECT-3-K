@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Monitor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            color: #333;
+        }
+        .background-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+        .content {
+            position: relative;
+            z-index: 1;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.8); /* Slightly transparent background */
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .active {
+            color: green;
+        }
+        .inactive, .failed {
+            color: red;
+        }
+        .activating, .deactivating {
+            color: yellow;
+        }
+        .reloading {
+            color: blue;
+        }
+        .maintenance {
+            color: magenta;
+        }
+        .unknown {
+            color: black;
+        }
+        .btn {
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: white;
+            font-size: 16px;
+            margin: 2px;
+            padding: 3px;
+        }
+        .start-btn { color: #4CAF50; } /* Green */
+        .stop-btn { color: #f44336; }  /* Red */
+        .restart-btn { color: #ffa500; } /* Orange */
+        .remove-btn { color: #FF5722; } /* Deep Orange */
+        .start-btn:hover { color: #45a049; }
+        .stop-btn:hover { color: #e53935; }
+        .restart-btn:hover { color: #ff8c00; }
+        .remove-btn:hover { color: #e64a19; }
+        .section-title {
+            font-size: 20px;
+            margin: 10px 0;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .remove-table {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        .remove-table table {
+            width: auto;
+            margin: 0;
+	    background-color: #ffffff;
+        }
+        .remove-table th, .remove-table td {
+            padding: 5px;
+            text-align: center;
+	    background-color: #ffffff;
+        }
+        .service-time {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        .vitals-table {
+            margin-top: 20px;
+        }
+        .vitals-table th, .vitals-table td {
+            text-align: center;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f4f4f4;
+            border-radius: 5px;
+            position: relative;
+            margin: 5px 0;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0%;
+            transition: width 0.5s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <video class="background-video" autoplay muted loop>
+        <source src="{{ url_for('static', filename='live-2.mp4') }}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    <div class="content">
+        <h1>Service Monitor</h1>
+
+    <div class="form-group">
+            <label for="new-service">Add New Service</label>
+            <input type="text" id="new-service" placeholder="Enter service name">
+            <button class="btn add-btn" onclick="addService()"><i class="fas fa-plus"></i> Add Service</button>
+        </div>        
+        <div>
+            <div class="section-title">Active Services</div>
+            <table id="active-services">
+                <thead>
+                    <tr>
+                        <th>Service Name</th>
+                        <th>Status</th>
+                        <th>Main PID</th>
+                        <th>Active Since</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Active services will be dynamically inserted here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div>
+            <div class="section-title">Inactive Services</div>
+            <table id="inactive-services">
+                <thead>
+                    <tr>
+                        <th>Service Name</th>
+                        <th>Status</th>
+                        <th>Main PID</th>
+                        <th>Active Since</th>
+                        <th>Last Active Since</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Inactive services will be dynamically inserted here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="service-time" id="service-time">
+            <!-- Service adding time will be dynamically inserted here -->
+        </div>
+       <div class="vitals-table">
+            <div class="section-title">System Vitals</div>
+            <table id="vitals">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Total</th>
+                        <th>Free (GB)</th>
+                        <th>Used (GB)</th>
+                        <th>Percentage</th>
+                        <th>Progress</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Disk</td>
+                        <td id="disk-total">-</td>
+                        <td id="disk-free">-</td>
+                        <td id="disk-used">-</td>
+                        <td id="disk-percentage">-</td>
+                        <td><div class="progress-bar"><div id="disk-progress" class="progress-bar-fill"></div></div></td>
+                    </tr>
+                    <tr>
+                        <td>Memory</td>
+                        <td id="memory-total">-</td>
+                        <td id="memory-free">-</td>
+                        <td id="memory-used">-</td>
+                        <td id="memory-percentage">-</td>
+                        <td><div class="progress-bar"><div id="memory-progress" class="progress-bar-fill"></div></div></td>
+                    </tr>
+                    <tr>
+                        <td>CPU</td>
+                        <td id="cpu-total-cores">-</td>
+                        <td id="cpu-free">N/A</td>
+                        <td id="cpu-used">N/A</td>
+                        <td id="cpu-percentage">-</td>
+                        <td><div class="progress-bar"><div id="cpu-progress" class="progress-bar-fill"></div></div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div> 
+        <div class="remove-table">
+            <div class="section-title">Remove Service</div>
+            <table id="remove-services">
+                <thead>
+                    <tr>
+                        <th>Service Name</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Remove service actions will be dynamically inserted here -->
+                </tbody>
+            </table>
+        </div>
+
+    <script>
+        function fetchStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    const activeServicesTbody = document.getElementById('active-services').querySelector('tbody');
+                    const inactiveServicesTbody = document.getElementById('inactive-services').querySelector('tbody');
+                    const removeServicesTbody = document.getElementById('remove-services').querySelector('tbody');
+                    
+                    activeServicesTbody.innerHTML = '';
+                    inactiveServicesTbody.innerHTML = '';
+                    removeServicesTbody.innerHTML = '';
+
+                    for (const [service, details] of Object.entries(data)) {
+                        const statusClass = details.status.includes('active') ? 'active' : 'inactive';
+                        const serviceActions = `
+                            <button class="btn start-btn" onclick="manageService('start', '${service}')"><i class="fas fa-play"></i></button>
+                            <button class="btn stop-btn" onclick="manageService('stop', '${service}')"><i class="fas fa-stop"></i></button>
+                            <button class="btn restart-btn" onclick="manageService('restart', '${service}')"><i class="fas fa-refresh"></i></button>
+                        `;
+                        const removeAction = `<button class="btn remove-btn" onclick="removeService('${service}')"><i class="fas fa-trash"></i></button>`;
+
+                        if (details.status.includes('active')) {
+                            activeServicesTbody.innerHTML += `
+                                <tr>
+                                    <td>${service}</td>
+                                    <td class="${statusClass}">${details.status}</td>
+                                    <td>${details.main_pid}</td>
+                                    <td>${details.active_since}</td>
+                                    <td>${serviceActions}</td>
+                                </tr>
+                            `;
+                        } else {
+                            inactiveServicesTbody.innerHTML += `
+                                <tr>
+                                    <td>${service}</td>
+                                    <td class="${statusClass}">${details.status}</td>
+                                    <td>${details.main_pid}</td>
+                                    <td>${details.active_since}</td>
+                                    <td>${details.last_active_since}</td>
+                                    <td>${serviceActions}</td>
+                                </tr>
+                            `;
+                        }
+
+                        removeServicesTbody.innerHTML += `
+                            <tr>
+                                <td>${service}</td>
+                                <td>${removeAction}</td>
+                            </tr>
+                        `;
+                    }
+                });
+        }
+
+        function fetchVitals() {
+            fetch('/vitals')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('disk-total').innerText = data.Disk.total.toFixed(2);
+                    document.getElementById('disk-free').innerText = data.Disk.free.toFixed(2);
+                    document.getElementById('disk-used').innerText = data.Disk.used.toFixed(2);
+                    document.getElementById('disk-percentage').innerText = data.Disk.percentage.toFixed(2);
+
+                    document.getElementById('memory-total').innerText = data.Memory.total.toFixed(2);
+                    document.getElementById('memory-free').innerText = data.Memory.free.toFixed(2);
+                    document.getElementById('memory-used').innerText = data.Memory.used.toFixed(2);
+                    document.getElementById('memory-percentage').innerText = data.Memory.percentage.toFixed(2);
+
+                    document.getElementById('cpu-total-cores').innerText = data.CPU.total_cores;
+                    document.getElementById('cpu-free').innerText = data.CPU.free;
+                    document.getElementById('cpu-used').innerText = data.CPU.used;
+                    document.getElementById('cpu-percentage').innerText = data.CPU.percentage.toFixed(2);
+
+                    // Update progress bars
+                    updateProgressBar('disk-progress', data.Disk.percentage);
+                    updateProgressBar('memory-progress', data.Memory.percentage);
+                    updateProgressBar('cpu-progress', data.CPU.percentage);
+                });
+        }
+
+        function updateProgressBar(elementId, percentage) {
+            const progressBar = document.getElementById(elementId);
+            const color = getProgressBarColor(percentage);
+            progressBar.style.width = `${percentage}%`;
+            progressBar.style.backgroundColor = color;
+            progressBar.innerText = `${percentage.toFixed(2)}%`; // Display percentage value inside the progress bar
+        }
+
+        function getProgressBarColor(percentage) {
+            if (percentage <= 10) return 'blue';
+            if (percentage <= 50) return 'green';
+            if (percentage <= 80) return 'yellow';
+            if (percentage <= 95) return 'red';
+            return '#b7410e'; // Brick Red color code
+        }
+
+        function addService() {
+            const newService = document.getElementById('new-service').value.trim();
+            if (newService) {
+                fetch('/add_service', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ service: newService })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        fetchStatus();
+                        document.getElementById('new-service').value = '';
+                    } else {
+                        alert(data.message || 'Failed to add service');
+                    }
+                });
+            }
+        }
+
+        function manageService(action, service) {
+            fetch('/manage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, service })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    fetchStatus();
+                } else {
+                    alert(data.message || 'Failed to manage service');
+                }
+            });
+        }
+
+        function removeService(service) {
+            fetch('/remove_service', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ service })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    fetchStatus();
+                } else {
+                    alert(data.message || 'Failed to remove service');
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchStatus();
+            fetchVitals();
+            setInterval(fetchStatus, 30000); // Refresh every 30 seconds
+            setInterval(fetchVitals, 60000); // Refresh every 60 seconds
+        });
+    </script>
+</body>
+</html>
