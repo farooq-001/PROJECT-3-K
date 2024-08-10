@@ -79,7 +79,6 @@ def manage_service(action, service):
 @app.route('/')
 def index():
     """Render the main page."""
-                'used': memory_info.used / (1024 ** 3),
     return render_template('alpha-service-2.html')
 
 @app.route('/status')
@@ -137,11 +136,6 @@ def vitals():
         memory_info = psutil.virtual_memory()
         disk_info = psutil.disk_usage('/')
 
-        # Debugging print statements (remove or replace with logging if needed)
-        print(f"CPU Percentages: {cpu_perc}")
-        print(f"Memory Info: {memory_info}")
-        print(f"Disk Info: {disk_info}")
-
         # Format data
         data = {
             'Disk': {
@@ -169,8 +163,6 @@ def vitals():
         # Log the exception for debugging
         logging.error(f"Failed to retrieve system vitals: {e}")
         return jsonify({'error': str(e)}), 500
-
-
 
 if __name__ == '__main__':
     app.run(debug=True)
