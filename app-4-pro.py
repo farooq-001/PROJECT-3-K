@@ -200,7 +200,7 @@ def login():
 def home():
     if 'username' not in session:
         return redirect(url_for('login'))
-    return render_template('index.html', title='Home')
+    return render_template('index-pro.html', title='Home')
 
 @app.route('/geo')
 def geo():
