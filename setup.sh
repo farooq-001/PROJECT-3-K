@@ -62,6 +62,7 @@ unzip -q static.zip
 unzip -q templates.zip
 
 sleep 2
+mv geo.html   templates/
 mv alpha-service-2.html  templates/
 mv live-2.mp4  static/
 
