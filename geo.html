@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background-image: url("/static/home.jpg");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            margin: 0;
+            padding: 0;
+        }
+        .container { 
+            width: 100%; 
+            margin: 0 auto; 
+            padding: 20px;
+            box-sizing: border-box; /* Ensures padding is included in the width */
+        }
+        .box { 
+            border: 1px solid #ccc; 
+            padding: 20px; 
+            border-radius: 8px; 
+            background-color: rgba(255, 255, 255, 0.9); /* Adding a slight white background for contrast */
+        }
+        h1 { color: #333; }
+        p { font-size: 16px; }
+        #map { height: 400px; width: 100%; margin-top: 20px; }
+        #location-info { display: none; }
+        #network-info { margin-top: 20px; }
+        .btn { 
+            background-color: #007bff; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin-bottom: 20px;
+        }
+        .btn:hover { background-color: #0056b3; }
+        .flag { width: 50px; height: auto; vertical-align: middle; }
+        .report-link { 
+            margin-top: 20px; 
+            display: block; 
+            color: #007bff; 
+            text-decoration: none; 
+            font-weight: bold;
+        }
+        .report-link:hover { text-decoration: underline; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f4f4f4; }
+
+        .logout {
+            position: absolute;
+            top: 50px;
+            right: 20px;
+            color: red;
+            cursor: pointer;
+        }
+
+        .back {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: center;
+        }
+
+        .back a {
+            color: blue;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Geo Location</h1>
+    <div class="back">
+        <a href="/home">Go to Home</a>
+    </div>
+
+    <div class="container">
+        <div class="box">
+            <button class="btn" onclick="toggleLocationInfo()">Location Information</button>
+            <button class="btn" onclick="refreshLocation()">Refresh Location</button>
+            <button class="btn" onclick="refreshNetworkInterfaces()">Refresh Network Interfaces</button>
+            <div id="location-info">
+                <p><strong>IP:</strong> <span id="ip"></span></p>
+                <p><strong>City:</strong> <span id="city"></span></p>
+                <p><strong>Region:</strong> <span id="region"></span></p>
+                <p><strong>Country:</strong> <span id="country"></span> <img id="flag" class="flag" src="" alt="Country Flag"></p>
+                <p><strong>Location:</strong> <span id="loc"></span></p>
+                <p><strong>Org:</strong> <span id="org"></span></p>
+            </div>
+            <a id="report-link" class="report-link" href="" target="_blank">Check IP Report on AbuseIPDB</a>
+            <div id="map"></div>
+            <div id="network-info">
+                <h2>Network Interfaces</h2>
+                <table id="interfaces-table">
+                    <thead>
+                        <tr>
+                            <th>Interface</th>
+                            <th>IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Network interfaces will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        var map;
+        var marker;
+
+        function initializeMap(latitude, longitude) {
+            map = L.map('map').setView([latitude, longitude], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            marker = L.marker([latitude, longitude]).addTo(map);
+        }
+
+        function updateMap(latitude, longitude, locationData) {
+            if (map) {
+                if (marker) {
+                    marker.setLatLng([latitude, longitude]);
+                } else {
+                    marker = L.marker([latitude, longitude]).addTo(map);
+                }
+
+                marker.bindPopup(`
+                    <b>Server Location</b><br>
+                    City: ${locationData.city}<br>
+                    Region: ${locationData.region}<br>
+                    Country: ${locationData.country}
+                `).openPopup();
+
+                map.setView([latitude, longitude], 13);
+            } else {
+                initializeMap(latitude, longitude);
+            }
+        }
+
+        function fetchLocation() {
+            fetch('/refresh_location')
+                .then(response => response.json())
+                .then(data => {
+                    var loc = data.loc.split(',');
+                    var latitude = loc[0];
+                    var longitude = loc[1];
+                    var countryCode = data.country.toLowerCase(); // Convert country code to lowercase for the flag URL
+
+                    document.getElementById('ip').textContent = data.ip;
+                    document.getElementById('city').textContent = data.city;
+                    document.getElementById('region').textContent = data.region;
+                    document.getElementById('country').textContent = data.country;
+                    document.getElementById('loc').textContent = data.loc;
+                    document.getElementById('org').textContent = data.org;
+
+                    // Update the flag image source
+                    document.getElementById('flag').src = `https://flagcdn.com/w80/${countryCode}.png`;
+
+                    // Update the IP report link
+                    document.getElementById('report-link').href = `https://www.abuseipdb.com/check/${data.ip}`;
+
+                    updateMap(latitude, longitude, data);
+                })
+                .catch(error => console.error('Error fetching location data:', error));
+        }
+
+        function fetchNetworkInterfaces() {
+            fetch('/network_interfaces')
+                .then(response => response.json())
+                .then(data => {
+                    var tableBody = document.getElementById('interfaces-table').getElementsByTagName('tbody')[0];
+                    tableBody.innerHTML = ''; // Clear existing table rows
+
+                    for (var iface in data) {
+                        if (data.hasOwnProperty(iface)) {
+                            data[iface].forEach(ip => {
+                                var row = tableBody.insertRow();
+                                var cell1 = row.insertCell(0);
+                                var cell2 = row.insertCell(1);
+                                cell1.textContent = iface;
+                                cell2.textContent = ip;
+                            });
+                        }
+                    }
+                })
+                .catch(error => console.error('Error fetching network interfaces:', error));
+        }
+
+        function toggleLocationInfo() {
+            var info = document.getElementById('location-info');
+            info.style.display = info.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function refreshLocation() {
+            fetchLocation();
+        }
+
+        function refreshNetworkInterfaces() {
+            fetchNetworkInterfaces();
+        }
+
+        // Initial load
+        fetchLocation();
+        fetchNetworkInterfaces();
+    </script>
+</body>
+</html>
+
