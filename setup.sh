@@ -64,6 +64,7 @@ unzip -q templates.zip
 sleep 2
 mv geo.html   templates/
 mv alpha-service-2.html  templates/
+mv index-pro.html  templates/
 mv live-2.mp4  static/
 
 rm -f pycache.zip static.zip templates.zip
