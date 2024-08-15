@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNB-TECH INFORMATION TECHNOLOGY</title>
+    <style>
+        body {
+            background-image: url("/static/home.jpg");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: stretch;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #f0f0f0;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .container {
+            flex: 1;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            text-align: center;
+            font-size: 32px;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        li {
+            font-size: 18px;
+            margin-bottom: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+        a {
+            text-decoration: none;
+            color: #000;
+            font-weight: bold;
+        }
+        a:hover {
+            color: #333;
+        }
+        .logout {
+            position: absolute;
+            top: 50px;
+            right: 20px;
+            color: black;
+            cursor: pointer;
+        }
+        .insidelist {
+            display: flex;
+            align-items: center;
+        }
+        .insidelist img {
+            height: 23px;
+            width: 23px;
+            margin-right: 10px;
+        }
+        .insidelist p {
+            font-weight: bold;
+            margin: 0;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h1>SNB-TECH</h1>
+        <ul>
+            <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ url_for('terminal') }}">Terminal</a></li>
+            <li><a href="{{ url_for('resource_information') }}">Resource</a></li>
+            <li><a href="{{ url_for('last_logins') }}">Last Logins</a></li>
+            <li><a href="{{ url_for('port_information') }}">Port Information</a></li>
+            <li><a href="{{ url_for('running_services') }}">Running Services</a></li>
+            <li><a href="{{ url_for('file_manager') }}">File Manager</a></li>
+            <li><a href="{{ url_for('geo') }}">Geo Location</a></li> <!-- Added this line -->
+        </ul>
+        <a href="{{ url_for('logout') }}" class="logout">Logout</a>
+    </div>
+    <div class="container">
+        <h1>SNB-TECH INFORMATION TECHNOLOGY</h1>
+        <!-- Main content here -->
+    </div>
+</body>
+</html>
+
